@@ -7,9 +7,10 @@ use 5.010001;
 use strict;
 use warnings;
 
+use Color::ANSI::Util qw(ansifg);
+use Color::RGB::Util qw(assign_rgb_light_color);
 use DateTime;
 use List::Util qw(max);
-use Term::ANSIColor;
 use Text::ANSI::Util qw(ta_length);
 
 # XXX use locale
@@ -94,7 +95,9 @@ sub gen_monthly_calendar {
         $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
         (my $mod_pm = "$mod.pm") =~ s!::!/!g;
         require $mod_pm;
-        push @$hol, @{ $mod->get_entries($y, $m) };
+        my $res = $mod->get_entries($y, $m);
+        for (@$res) { $_->{module} = $mod }
+        push @$hol, @$res;
     }
     $hol = [sort {$a->{date} cmp $b->{date}} @$hol];
 
@@ -112,7 +115,7 @@ sub gen_monthly_calendar {
     for my $i (1..$dow-1) {
         push @lines, "" if $i == 1;
         if ($args{show_prev_month_days} // 1) {
-            $lines[-1] .= colored(sprintf("%2d ", $dt->day), "bright_black");
+            $lines[-1] .= sprintf("%s%2d \e[0m", ansifg("404040"), $dt->day);
         } else {
             $lines[-1] .= "   ";
         }
@@ -122,25 +125,26 @@ sub gen_monthly_calendar {
         if ($dt->day_of_week == 1) {
             push @lines, "";
         }
-        my $col = "white";
+        my $col = "808080";
+        my $reverse;
         if (($args{highlight_today}//1) && DateTime->compare($dt, $dt_today) == 0) {
-            $col = "reverse";
+            $reverse++;
         } else {
             for (@$hol) {
                 if ($dt->day == $_->{day}) {
                     my $is_holiday = $_->{is_holiday} ||
                         (grep {$_ eq 'holiday'} @{ $_->{tags} // [] });
-                    $col = $is_holiday ? "bright_red" : "bright_green";
+                    $col = assign_rgb_light_color($_->{module});
                 }
             }
         }
-        $lines[-1] .= colored(sprintf("%2d ", $dt->day), $col);
+        $lines[-1] .= sprintf("%s%s%2d \e[0m", $reverse ? "\e[7m" : "", ansifg($col), $dt->day);
         $dt->add(days => 1);
     }
     if ($args{show_next_month_days} // 1) {
         $dow = $dt->day_of_week - 1; $dow = 7 if $dow == 0;
         for my $i ($dow+1..7) {
-            $lines[-1] .= colored(sprintf("%2d ", $dt->day), "bright_black");
+            $lines[-1] .= sprintf("%s%2d \e[0m", ansifg("404040"), $dt->day);
             $dt->add(days => 1);
         }
     }
@@ -228,7 +232,9 @@ sub gen_calendar {
 
     for my $i (0..@hol-1) {
         push @lines, "" if $i == 0;
-        push @lines, sprintf("%2d %s = %s", $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1], $hol[$i]{summary});
+        push @lines, sprintf("%s%2d %s = %s\e[0m",
+                             ansifg(assign_rgb_light_color($hol[$i]{module})),
+                             $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1], $hol[$i]{summary});
     }
 
     [200, "OK", join("\n", @lines)];
