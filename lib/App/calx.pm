@@ -96,7 +96,7 @@ sub gen_monthly_calendar {
         $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
         (my $mod_pm = "$mod.pm") =~ s!::!/!g;
         require $mod_pm;
-        my $res = $mod->get_entries($y, $m);
+        my $res; eval { $res = $mod->get_entries($y, $m) }; next if $@;
         for (@$res) { $_->{module} = $mod0 }
         push @$hol, @$res;
     }
