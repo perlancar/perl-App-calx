@@ -91,7 +91,7 @@ sub gen_monthly_calendar {
 
     my $hol = [];
     for my $mod (@{ $args{caldates_modules} // [] }) {
-        my $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
+        $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
         (my $mod_pm = "$mod.pm") =~ s!::!/!g;
         require $mod_pm;
         push @$hol, @{ $mod->get_entries($y, $m) };
