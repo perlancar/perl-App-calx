@@ -254,6 +254,4 @@ This module provides the B<calx> which, like the Unix utility B<cal>, displays
 calendar on the command-line. The difference is, B<calx> can also show and
 highlight dates from one or more L<Calendar::Dates> modules.
 
-TODO: customize colors for each calendar.
-
 =cut
