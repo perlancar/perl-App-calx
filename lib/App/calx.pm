@@ -235,7 +235,9 @@ sub gen_calendar {
         push @lines, "" if $i == 0;
         push @lines, sprintf("%s%2d %s = %s\e[0m",
                              ansifg(assign_rgb_light_color($hol[$i]{module})),
-                             $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1], $hol[$i]{summary});
+                             $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1],
+                             "$hol[$i]{summary} ($hol[$i]{module})",
+                         );
     }
 
     [200, "OK", join("\n", @lines)];
