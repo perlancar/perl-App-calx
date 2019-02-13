@@ -22,6 +22,15 @@ GetOptions(
     '3'   => sub { $args{months} = 3  },
     'y'   => sub { $args{months} = 12 },
     'c=s' => $args{caldates_modules},
+    'a'   => sub {
+        require PERLANCAR::Module::List;
+
+        my $mods = PERLANCAR::Module::List::list_modules(
+            "Calendar::Dates::", {list_modules=>1, recurse=>1});
+        my @res = sort keys %$mods;
+        for (@res) { s/\ACalendar::Dates::// }
+        $args{caldates_modules} = \@res;
+    },
 );
 
 my $dt = DateTime->now;
@@ -59,6 +68,9 @@ say $res->[2];
 
  # show calendar for the current month, with dates from Calendar::Dates::ID::Holiday and Calendar::Dates::SG::Holiday
  % calx -c ID::Holiday -c SD::Holiday
+
+ # show calendar for the current month, with dates from all installed Calendar::Dates::* modules
+ % calx -a
 
  # show calendar for the whole year
  % calx 2019 -c ID::Holiday
@@ -101,6 +113,10 @@ Show one year (12 months) of calendar (the default if only year is specified).
 
 Get dates from a L<Calendar::Dates> module (value is name of module without the
 "Calendar::Dates::" prefix). Can be specified multiple times.
+
+=head2 -a
+
+Get dates from all installed C<Calendar::Dates::*> modules.
 
 
 =head1 SEE ALSO

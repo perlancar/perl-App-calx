@@ -91,12 +91,13 @@ sub gen_monthly_calendar {
     my $dt_today = DateTime->today(time_zone=>$tz);
 
     my $hol = [];
-    for my $mod (@{ $args{caldates_modules} // [] }) {
+    for my $mod0 (@{ $args{caldates_modules} // [] }) {
+        my $mod = $mod0;
         $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
         (my $mod_pm = "$mod.pm") =~ s!::!/!g;
         require $mod_pm;
         my $res = $mod->get_entries($y, $m);
-        for (@$res) { $_->{module} = $mod }
+        for (@$res) { $_->{module} = $mod0 }
         push @$hol, @$res;
     }
     $hol = [sort {$a->{date} cmp $b->{date}} @$hol];
