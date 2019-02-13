@@ -1,0 +1,112 @@
+#!perl
+
+# DATE
+# VERSION
+
+use 5.010001;
+use strict;
+use warnings;
+
+use App::calx;
+use DateTime;
+use Getopt::Long qw(:config gnu_getopt no_ignore_case);
+
+my %args = (
+    months => 1,
+    caldates_modules => [],
+);
+
+GetOptions(
+    'h'   => sub { $args{highlight_today} = 0 },
+    '1'   => sub { $args{months} = 1  },
+    '3'   => sub { $args{months} = 3  },
+    'y'   => sub { $args{months} = 12 },
+    'c=s' => $args{caldates_modules},
+);
+
+my $dt = DateTime->now;
+
+if (@ARGV == 1) {
+    $args{year}   = $ARGV[0];
+    $args{months} = 12;
+} elsif (@ARGV == 2) {
+    $args{month} = $ARGV[0];
+    $args{year}  = $ARGV[1];
+} else {
+    $args{month} = $dt->month;
+    $args{year}  = $dt->year;
+}
+
+if ($args{months} == 3) {
+    $dt = DateTime->new(year=>$args{year}, month=>$args{month}//1, day=>1);
+    $dt->subtract(months=>1);
+    $args{month} = $dt->month;
+    $args{year}  = $dt->year;
+}
+
+my $res = App::calx::gen_calendar(%args);
+die $res->[1] unless $res->[0] == 200;
+say $res->[2];
+
+1;
+# ABSTRACT: Display calendar
+# PODNAME:
+
+=head1 SYNOPSIS
+
+ # show calendar for the current month, with dates from Calendar::Dates::ID::Holiday
+ % calx -c ID::Holiday
+
+ # show calendar for the current month, with dates from Calendar::Dates::ID::Holiday and Calendar::Dates::SG::Holiday
+ % calx -c ID::Holiday -c SD::Holiday
+
+ # show calendar for the whole year
+ % calx 2019 -c ID::Holiday
+
+ # show calendar for a certain month and year
+ % calx 2 2019 -c ID::Holiday
+
+
+=head1 DESCRIPTION
+
+This command provides a subset of B<cal> functionality for displaying ASCII
+calendar on the command-line. It currently starts the week at Monday and
+highlights (and lists) dates from one or more L<Calendar::Dates>::* modules.
+
+
+=head1 OPTIONS
+
+ % calx [opts] [[month] year]
+
+Most options follow B<cal>. Not all options from B<cal> are
+supported/recognized. Some options are specific to B<calx>.
+
+=head2 -1
+
+Show a single month of calendar (the default).
+
+=head2 -3
+
+Show three months of calendar (previous, current, next).
+
+=head2 -h
+
+Turn off highlighting of today.
+
+=head2 -y
+
+Show one year (12 months) of calendar (the default if only year is specified).
+
+=head2 -c MODULE+
+
+Get dates from a L<Calendar::Dates> module (value is name of module without the
+"Calendar::Dates::" prefix). Can be specified multiple times.
+
+
+=head1 SEE ALSO
+
+B<cal> Unix utility
+
+L<Calendar::Dates>
+
+=cut
