@@ -1,3 +1,11 @@
+0.004   2019-02-13 (PERLANCAR)
+
+	- [ux] Show tags.
+
+	- [bugfix] Trap exception from get_entries() (i.e. when dates from
+	  year later than latest supported year is requested).
+
+
 0.003   2019-02-13 (PERLANCAR)
 
 	- Add option -a (get dates from all installed Calendar::Dates::*
