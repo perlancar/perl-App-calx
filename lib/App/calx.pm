@@ -80,7 +80,7 @@ _
     result_naked => 1,
 };
 sub gen_monthly_calendar {
-    my %args = @_; # VALIDATE_ARGS
+    my %args = @_;
     my $m = $args{month};
     my $y = $args{year};
 
@@ -183,7 +183,7 @@ _
     "x.perinci.sub.wrapper.disable_validate_args" => 1,
 };
 sub gen_calendar {
-    my %args = @_; # VALIDATE_ARGS
+    my %args = @_;
     my $y  = $args{year};
     my $m  = $args{month};
     my $mm = $args{months} // 1;
