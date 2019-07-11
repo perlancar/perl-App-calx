@@ -1,9 +1,9 @@
-0.005   2019-03-26 (PERLANCAR)
+0.005   2019-03-26  Released-By: PERLANCAR
 
 	- [build] Remove usage of DZP-Rinci-Validate to resolve RT#128914.
 
 
-0.004   2019-02-13 (PERLANCAR)
+0.004   2019-02-13  Released-By: PERLANCAR
 
 	- [ux] Show tags.
 
@@ -11,7 +11,7 @@
 	  year later than latest supported year is requested).
 
 
-0.003   2019-02-13 (PERLANCAR)
+0.003   2019-02-13  Released-By: PERLANCAR
 
 	- Add option -a (get dates from all installed Calendar::Dates::*
 	  modules).
@@ -19,11 +19,11 @@
 	- [ux] Show calendar date module name for each entry.
 
 
-0.002   2019-02-13 (PERLANCAR)
+0.002   2019-02-13  Released-By: PERLANCAR
 
 	- Show each calendar with a different color.
 
 
-0.001   2019-02-13 (PERLANCAR)
+0.001   2019-02-13  Released-By: PERLANCAR
 
         - First release.
