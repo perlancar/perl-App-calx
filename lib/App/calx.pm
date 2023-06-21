@@ -1,8 +1,5 @@
 package App::calx;
 
-# DATE
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
@@ -12,6 +9,11 @@ use Color::RGB::Util qw(assign_rgb_light_color);
 use DateTime;
 use List::Util qw(max);
 use Text::ANSI::Util qw(ta_length);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
 
 # XXX use locale
 my $month_names = [qw(January February March April May June July August September October November December)];
@@ -71,8 +73,11 @@ _
         time_zone => {
             schema => 'str*',
         },
+        dates => {
+            schema => ['array*', of=>'hash*'],
+        },
         caldates_modules => {
-            schema => ['array*', of=>'perl::modname*'],
+            schema => ['array*', of=>'perl::calendar::dates::modname*'],
             cmdline_aliases => {c=>{}},
         },
     },
@@ -91,14 +96,18 @@ sub gen_monthly_calendar {
     my $dt_today = DateTime->today(time_zone=>$tz);
 
     my $hol = [];
-    for my $mod0 (@{ $args{caldates_modules} // [] }) {
-        my $mod = $mod0;
-        $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
-        (my $mod_pm = "$mod.pm") =~ s!::!/!g;
-        require $mod_pm;
-        my $res; eval { $res = $mod->get_entries($y, $m) }; next if $@;
-        for (@$res) { $_->{module} = $mod0 }
-        push @$hol, @$res;
+    if ($args{dates} && @{ $args{dates} }) {
+        $hol = $args{dates};
+    } else {
+        for my $mod0 (@{ $args{caldates_modules} // [] }) {
+            my $mod = $mod0; $mod =~ s!/!::!g;
+            $mod = "Calendar::Dates::$mod" unless $mod =~ /\ACalendar::Dates::/;
+            (my $mod_pm = "$mod.pm") =~ s!::!/!g;
+            require $mod_pm;
+            my $res; eval { $res = $mod->get_entries($y, $m) }; next if $@;
+            for (@$res) { $_->{module} = $mod0 }
+            push @$hol, @$res;
+        }
     }
     $hol = [sort {$a->{date} cmp $b->{date}} @$hol];
 
@@ -133,9 +142,10 @@ sub gen_monthly_calendar {
         } else {
             for (@$hol) {
                 if ($dt->day == $_->{day}) {
-                    my $is_holiday = $_->{is_holiday} ||
-                        (grep {$_ eq 'holiday'} @{ $_->{tags} // [] });
-                    $col = assign_rgb_light_color($_->{module});
+                    #my $is_holiday = $_->{is_holiday} ||
+                    #    (grep {$_ eq 'holiday'} @{ $_->{tags} // [] });
+                    $col = assign_rgb_light_color($_->{module} // "dates");
+                    $reverse++ if $args{dates};
                 }
             }
         }
@@ -162,7 +172,6 @@ $SPEC{gen_calendar} = {
         },
         year => {
             schema => ['int*'],
-            req => 1,
         },
         month => {
             summary => 'The first month',
@@ -179,68 +188,120 @@ _
         time_zone => {
             schema => 'str*',
         },
+
+        dates => {
+            schema => ['array*', of=>'hash*'],
+        },
+        caldates_modules => {
+            schema => ['array*', of=>['perl::calendar::dates::modname*']],
+        },
+
     },
     "x.perinci.sub.wrapper.disable_validate_args" => 1,
+    args_rels => {
+        choose_one => [qw/dates caldates_modules/],
+        req_one => [qw/year dates/],
+    },
 };
 sub gen_calendar {
     my %args = @_;
-    my $y  = $args{year};
-    my $m  = $args{month};
-    my $mm = $args{months} // 1;
-    my $tz = $args{time_zone} // $ENV{TZ} // "UTC";
+    my $dates = $args{dates};
 
     my @lines;
+    my $tz = $args{time_zone} // $ENV{TZ} // "UTC";
 
-    my %margs = (
-        caldates_modules => $args{caldates_modules},
-        highlight_today => ($args{highlight_today} // 1),
-    );
-
-    if ($mm == 12 && !$m) {
-        $m = 1;
-        $margs{show_year_in_title} = 0;
-        push @lines, _center(64, $y);
-    }
-    $m or return [400, "Please specify month"];
-    if ($mm > 1) {
-        $margs{show_prev_month_days} = 0;
-        $margs{show_next_month_days} = 0;
-    }
-
-    my @moncals;
-    my $dt = DateTime->new(year=>$y, month=>$m, day=>1, time_zone=>$tz);
-    for (1..$mm) {
-        push @moncals, gen_monthly_calendar(
-            month=>$dt->month, year=>$dt->year, time_zone=>$tz, %margs);
-        $dt->add(months => 1);
-    }
-    my @hol = map {@{ $_->[1] }} @moncals;
-    my $l = max(map {~~@$_} map {$_->[0]} @moncals);
-    my $i = 0;
-    my $j = @moncals;
-    while (1) {
-        for (0..$l-1) {
-            push @lines,
-                sprintf("%s %s %s",
-                        _rpad(21, $moncals[$i+0][0][$_]//""),
-                        _rpad(21, $moncals[$i+1][0][$_]//""),
-                        _rpad(21, $moncals[$i+2][0][$_]//""));
+    my @years;
+    my ($start_month, $end_month);
+    if ($dates && @$dates) {
+        my ($min_date, $max_date);
+        for (@$dates) {
+            $min_date = $_->{date} if !defined($min_date) || $_->{date} lt $min_date;
+            $max_date = $_->{date} if !defined($max_date) || $_->{date} gt $max_date;
         }
-        last if $i+3 >= $j;
-        $i += 3;
-        push @lines, "";
+        my ($min_year, $min_mon, $min_day) = $min_date =~ /(\d{4})-(\d{2})-(\d{2})/;
+        my ($max_year, $max_mon, $max_day) = $max_date =~ /(\d{4})-(\d{2})-(\d{2})/;
+        if ($min_year < 1582) { die "Minimum year must be 1582\n" }
+        if ($max_year > 9999) { die "Minimum year must be 9999\n" }
+        @years = $min_year .. $max_year;
+        $start_month = $min_mon;
+        $end_month = $max_mon;
+    } else {
+        @years = ($args{year});
+        $start_month = $args{month} // 1;
+        $end_month = $start_month + ($args{months} // 1) - 1;
     }
 
-    for my $i (0..@hol-1) {
-        my @notes = ($hol[$i]{module});
-        push @notes, @{$hol[$i]{tags}} if $hol[1]{tags};
-        push @lines, "" if $i == 0;
-        push @lines, sprintf("%s%2d %s = %s\e[0m",
-                             ansifg(assign_rgb_light_color($hol[$i]{module})),
-                             $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1],
-                             "$hol[$i]{summary} (".join(", ", @notes).")",
-                         );
-    }
+    for my $year (@years) {
+        my $start_mon2 = $year == $years[0] ? $start_month : 1;
+        my $end_mon2 = $year == $years[-1] ? $end_month : 12;
+
+        unless ($start_mon2 == $end_mon2) {
+            # show multiples of 3 months instead of just 2 months
+            if (($start_mon2-1) % 3) {
+                $start_mon2 = int(($start_mon2-1)/3)*3+1;
+            }
+            if ($end_mon2 % 3) {
+                $end_mon2 = int(($end_mon2+2)/3)*3;
+            }
+        }
+
+        my $year_has_been_printed;
+        my @moncals;
+        for my $mon ($start_mon2 .. $end_mon2) {
+            my %margs = (
+                caldates_modules => $args{caldates_modules},
+                highlight_today => ($args{highlight_today} // 1),
+            );
+            if ($start_mon2 == 1 && $end_mon2 == 12) {
+                $margs{show_year_in_title} = 0;
+                push @lines, _center(64, $year) unless $year_has_been_printed++;
+            }
+            $margs{show_prev_month_days} = 0 unless $start_mon2 == $end_mon2;
+            $margs{show_next_month_days} = 0 unless $start_mon2 == $end_mon2;
+
+            if ($dates) {
+                $margs{dates} = [
+                    grep { $_->{month} == $mon && $_->{year} == $year }
+                    @$dates];
+            }
+
+            push @moncals, gen_monthly_calendar(
+                month=>$mon, year=>$year, time_zone=>$tz, %margs);
+        } # for month
+
+        # group per three months
+        my @hol = map {@{ $_->[1] }} @moncals;
+        my $l = max(map {@$_+0} map {$_->[0]} @moncals);
+        my $i = 0;
+        my $j = @moncals;
+        while (1) {
+            for (0..$l-1) {
+                push @lines,
+                    sprintf("%s %s %s",
+                            _rpad(21, $moncals[$i+0][0][$_]//""),
+                            _rpad(21, $moncals[$i+1][0][$_]//""),
+                            _rpad(21, $moncals[$i+2][0][$_]//""));
+            }
+            last if $i+3 >= $j;
+            $i += 3;
+            push @lines, "";
+        }
+
+        # print legends
+        for my $i (0..@hol-1) {
+            if ($hol[1]{module}) {
+                my @notes = ($hol[$i]{module});
+                push @notes, @{$hol[$i]{tags}} if $hol[1]{tags};
+                push @lines, "" if $i == 0;
+                push @lines, sprintf("%s%2d %s = %s\e[0m",
+                                     ansifg(assign_rgb_light_color($hol[$i]{module})),
+                                     $hol[$i]{day}, $short_month_names->[$hol[$i]{month}-1],
+                                     "$hol[$i]{summary} (".join(", ", @notes).")",
+                                 );
+            }
+        }
+
+    } # for year
 
     [200, "OK", join("\n", @lines)];
 }

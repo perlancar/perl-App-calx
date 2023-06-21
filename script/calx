@@ -15,6 +15,7 @@ my %args = (
     months => 1,
     caldates_modules => [],
 );
+my $dates = [];
 
 GetOptions(
     'h'   => sub { $args{highlight_today} = 0 },
@@ -22,6 +23,7 @@ GetOptions(
     '3'   => sub { $args{months} = 3  },
     'y'   => sub { $args{months} = 12 },
     'c=s' => $args{caldates_modules},
+    'date=s' => $dates,
     'a'   => sub {
         require PERLANCAR::Module::List;
 
@@ -35,7 +37,35 @@ GetOptions(
 
 my $dt = DateTime->now;
 
-if (@ARGV == 1) {
+my $re = qr/\A((\d{4})-(\d{2})-(\d{2}))(?:\t(.+))?\z/;
+if (!(-t STDIN)) {
+    my @dates;
+    while (my $line = <STDIN>) {
+        chomp $line;
+        $line =~ $re or die "Invalid date syntax '$line'\n";
+        push @dates, {
+            date => $1,
+            day => $4,
+            month => $3,
+            year => $2,
+            summary => $5,
+        };
+    }
+    $args{dates} = \@dates;
+} elsif (@$dates) {
+    my @dates;
+    for my $date (@$dates) {
+        $date =~ $re or die "Invalid date syntax '$date'\n";
+        push @dates, {
+            date => $1,
+            day => $4,
+            month => $3,
+            year => $2,
+            summary => $5,
+        };
+    }
+    $args{dates} = \@dates;
+} elsif (@ARGV == 1) {
     $args{year}   = $ARGV[0];
     $args{months} = 12;
 } elsif (@ARGV == 2) {
@@ -78,12 +108,15 @@ say $res->[2];
  # show calendar for a certain month and year
  % calx 2 2019 -c ID::Holiday
 
+ # echo -e "2023-05-30\n2023-05-31\n2023-06-01\n" | calx
+
 
 =head1 DESCRIPTION
 
 This command provides a subset of B<cal> functionality for displaying ASCII
 calendar on the command-line. It currently starts the week at Monday and
-highlights (and lists) dates from one or more L<Calendar::Dates>::* modules.
+highlights (and lists) dates from one or more L<Calendar::Dates>::* modules or
+from list of supplied dates.
 
 
 =head1 OPTIONS
@@ -117,6 +150,11 @@ Get dates from a L<Calendar::Dates> module (value is name of module without the
 =head2 -a
 
 Get dates from all installed C<Calendar::Dates::*> modules.
+
+=head2 --date DATE+
+
+Highlight one or more dates. You can also supply the dates from stdin. The dates
+must be in ISO8601 C<YYYY-MM-DD> format.
 
 
 =head1 SEE ALSO
