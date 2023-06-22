@@ -165,4 +165,8 @@ B<cal> Unix utility
 
 L<Calendar::Dates>
 
+B<cal> Unix utility.
+
+Other B<cal> variants: L<cal-idn> (from L<App::cal::idn>).
+
 =cut

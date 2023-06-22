@@ -316,8 +316,11 @@ sub gen_calendar {
 
 =head1 DESCRIPTION
 
-This module provides the B<calx> which, like the Unix utility B<cal>, displays
-calendar on the command-line. The difference is, B<calx> can also show and
-highlight dates from one or more L<Calendar::Dates> modules.
+
+=head1 SEE ALSO
+
+B<cal> Unix utility.
+
+Other B<cal> variants: L<cal-idn> (from L<App::cal::idn>).
 
 =cut
