@@ -118,7 +118,7 @@ say $res->[2];
 This command provides a variant of B<cal> utility for displaying ASCII calendar
 on the command-line. It focuses on highlighting certain dates. It currently
 always starts the week at Monday and can get the list of dates from command-line
-option (`--date`) or stdin or one or more L<Calendar::Dates>::* modules.
+option (C<--date>) or stdin or one or more L<Calendar::Dates>::* modules.
 
 
 =head1 OPTIONS
