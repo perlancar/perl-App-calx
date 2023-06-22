@@ -23,7 +23,7 @@ our %SPEC;
 
 $SPEC{':package'} = {
     v => 1.1,
-    summary => 'Display a calendar',
+    summary => 'Display a calendar, with highlighted dates',
 };
 
 sub _center {

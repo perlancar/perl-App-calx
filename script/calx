@@ -90,7 +90,7 @@ die $res->[1] unless $res->[0] == 200;
 say $res->[2];
 
 1;
-# ABSTRACT: Display calendar with highlighted dates
+# ABSTRACT: Display calendar, with highlighted dates
 # PODNAME:
 
 =head1 SYNOPSIS
